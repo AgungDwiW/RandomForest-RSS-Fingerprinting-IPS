@@ -19,7 +19,9 @@ def loadDataset(name):
 
 data = loadDataset("tekber.csv")
 
-dictBSSID = {"ce:73:14:c4:7a:28" : 0, "18:0f:76:91:f2:72" : 1, "c0:25:e9:7a:e6:30":2}
+dictBSSID = {"ce:73:14:c4:7a:28" : 0, 
+             "18:0f:76:91:f2:72" : 1, 
+             "c0:25:e9:7a:e6:30":2}
 y = []
 x = []
 class_x = [[] for a in range(3)]
@@ -67,7 +69,8 @@ for item in class_x:
 
 from sklearn.ensemble import RandomForestClassifier
 
-model = RandomForestClassifier(n_estimators=20, random_state=0)
+model = RandomForestClassifier(n_estimators=20, 
+                               random_state=0)
 model.fit(train_x, train_y)
 y_pred = model.predict(test_x)
 
@@ -81,5 +84,5 @@ import pickle
 
 fp = open("model1", "wb")
 pickle.dump(model, fp)
-
+fp.close()
 
