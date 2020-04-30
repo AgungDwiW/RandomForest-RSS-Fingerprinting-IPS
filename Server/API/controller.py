@@ -10,17 +10,13 @@ import json
 """
 predictor
 """
-bssid_token = {"ce:73:14:c4:7a:28" : 0, 
-             "18:0f:76:91:f2:72" : 1, 
-             "c0:25:e9:7a:e6:30":2}
-model = pickle.load(open("model1", 'rb'))
 
 """
 controller
 """
 WebApp = Blueprint("controller",__name__)
 
-@WebApp.route('/apis', methods=['POST'])
+@WebApp.route('/api', methods=['POST'])
 def index():
     print(request.get_json())
     jsons = request.get_json()
@@ -36,9 +32,10 @@ def index():
     except:
         err = {"error": "error - can't predict"}
         return json.dumps(err)
-        
-    ret = {"predicted": str(pred[0])}
-    ret = json.dumps(ret)
+    
+    ret = str(pred[0])
+    #ret = {"predicted": str(pred[0])}
+    #ret = json.dumps(ret)
     print(ret)
     return ret
     #return str(bc.predict())

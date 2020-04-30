@@ -1,23 +1,10 @@
+FROM tiangolo/uwsgi-nginx-flask:python3.6
 
-FROM python:3.6-alpine
+WORKDIR /app/
 
-RUN apk add --no-cache --virtual .build-deps gcc musl-dev
-RUN pip install cython
+COPY requirements.txt /app/
+RUN pip install -r ./requirements.txt
 
+ENV ENVIRONMENT production
 
-# install Python modules needed by the Python app
-COPY requirements.txt /usr/src/app/
-RUN pip install --no-cache-dir -r /usr/src/app/requirements.txt
-
-# copy files required for the app to run
-COPY *.py /usr/src/app/
-COPY *.db /usr/src/app/
-
-# tell the port number the container should expose
-EXPOSE 5000
-WORKDIR /usr/src/app
-
-RUN apk del .build-deps gcc musl-dev
-
-# run the application
-CMD ["python", "/usr/src/app/run.py"]
+COPY main.py __init__.py model_forest_pleno BSSID_pleno model_kelas BSSID_kelas /app/ 
