@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private Button send;
     private TextView text;
     private WifiManager wifiManager;
-    private String uri = "http://192.168.100.8:5000/test";
+    private String uri = "http://192.168.43.187:5000/api";
     public static final int CONNECTION_TIMEOUT=10000;
     public static final int READ_TIMEOUT=15000;
     @Override
@@ -128,8 +128,36 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(String result) {
             super.onPostExecute(result);
-            //Log.e("TAG", result); // this is expecting a response code to be sent from your server upon receiving the POST data
-            text.setText(result);
+            JSONObject reader = null;
+            JSONObject infos = null;
+            try {
+                reader = new JSONObject(result);
+
+                String name = reader.getString("booth_name");
+                infos = reader.getJSONObject("booth_info");
+
+
+                printConsole("========================");
+                printConsole("Reply");
+                printConsole("========================");
+                printConsole("Boooth name :" + name);
+                for (int x = 1; x<=infos.length(); x++){
+                    JSONObject item = infos.getJSONObject(x+"");
+                    printConsole("------------"+x+"------------");
+                    printConsole("title: " + item.getString("title"));
+                    printConsole("subtitle: ");
+                    printConsole( item.getString("subtitle"));
+                }
+                printConsole("========================");
+                text.setText(name);
+
+            } catch (JSONException e) {
+                text.setText("error");
+                printConsole(result);
+                e.printStackTrace();
+            }
+
+
         }
     }
 
@@ -146,59 +174,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-//    private void scanWifi() {
-//        List<ScanResult> results;
-//
-//        JSONObject json = new JSONObject();
-//
-//        String BSSID1 = "ce:73:14:c4:7a:28", BSSID2 = "18:0f:76:91:f2:72", BSSID3 = "c0:25:e9:7a:e6:30";
-//        double level1 =0, level2 = 0, level3=0;
-//        int count1 =0, count2 = 0, count3=0;
-//         /*
-//        SSID	            BSSID       	    A	        N
-//        Ephemeral blessing	ce:73:14:c4:7a:28	-63.555	    2.18345215481207
-//        Elfais	            18:0f:76:91:f2:72	-47.43	    3.40041922816446
-//        TP-LINK_E630	    c0:25:e9:7a:e6:30	-54.685	    2.87070468917083
-//         */
-//        for (int x = 0; x<100;x++){
-//            results = wifiManager.getScanResults();
-//            for (ScanResult scanResult : results) {
-//                if(scanResult.BSSID.equals(BSSID1) ){
-//                    level1 += scanResult.level; count1+=1;}
-//                else if (scanResult.BSSID.equals(BSSID2)){
-//                    level2 += scanResult.level; count2+=1;}
-//                else if (scanResult.BSSID.equals(BSSID3)){
-//                    level3 += scanResult.level; count3+=1;}
-//            }
-//            sleep(100);
-//            final int  y = x;
-//            runOnUiThread(new Runnable() {
-//                @Override
-//                public void run() {
-//                    printConsole("scanning data - " + y+1 + "/400");
-//                }
-//            });
-//
-//        }
-//        level1 /=count1;
-//        level2 /=count2;
-//        level3 /= count3;
-//        printConsole("============");
-//        printConsole(BSSID1 + " : " + level1);
-//        printConsole(BSSID2 + " : " + level2);
-//        printConsole(BSSID3 + " : " + level3);
-//        printConsole("============");
-//        try {
-//            json.put(BSSID1 , level1);
-//            json.put(BSSID2 , level2);
-//            json.put(BSSID3 , level3);
-//        } catch (JSONException e) {
-//            e.printStackTrace();
-//        }
-//
-//        new SendDeviceDetails().execute("http://192.168.100.8:5000/api", json.toString());
-//
-//    }
 
     private class scanWifi extends AsyncTask<String, Void, String> {
         // daemon class to get rssi and freq of certain wifi
@@ -283,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
 
-            new SendDeviceDetails().execute("http://192.168.100.8:5000/api", json.toString());
+            new SendDeviceDetails().execute(uri, json.toString());
         }
     }
 }
