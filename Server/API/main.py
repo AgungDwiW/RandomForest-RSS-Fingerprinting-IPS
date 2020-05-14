@@ -54,7 +54,8 @@ def getData(dataID):
     
     #create json
     output = {"status" : "success", 
-              "booth_id" : booth[0][2],
+              "booth_id" : booth[0][3],
+              "boot_subtitle" : booth[0][2],
               "booth_name" : booth[0][1],
               "booth_info" : infos
               }
