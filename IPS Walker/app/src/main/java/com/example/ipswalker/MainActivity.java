@@ -16,6 +16,7 @@ import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -43,19 +44,18 @@ public class MainActivity extends AppCompatActivity {
         Elfais	            18:0f:76:91:f2:72	-47.43	    3.40041922816446
         TP-LINK_E630	    c0:25:e9:7a:e6:30	-54.685	    2.87070468917083
          */
+    private RatingBar oneRatingBar;
 
-    private Button send;
-    private TextView text, subtitle;
+    private Button send, rate;
+    private TextView text, subtitle, rating;
     private WifiManager wifiManager;
     private String uri = "http://192.168.100.77:5000/api";
-//
-//    private ArrayAdapter adapter;
-//    private ArrayList<String> arrayList = new ArrayList<>();
-//    public ListView groupList;
+    private String uriRate = "http://192.168.100.77:5000/rate";
     private List<Info> arrayList = new ArrayList<>();
     private RecyclerView recyclerView;
     private Adapter mAdapter;
-
+    private String curId;
+    private String user_id;
     public static final int CONNECTION_TIMEOUT=10000;
     public static final int READ_TIMEOUT=15000;
 
@@ -64,11 +64,19 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        user_id = ((GlobalVar) MainActivity.this.getApplication()).getId_user();
 
-//        console = findViewById(R.id.console);
-//        console.setMovementMethod(new ScrollingMovementMethod());
         n=1;
+        rating = findViewById(R.id.rating);
+        rate= findViewById(R.id.rate);
+        rate.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                makeRate();
+            }
+        });
 
+        oneRatingBar= (RatingBar) findViewById(R.id.ratingBar);
         send = findViewById(R.id.button);
         text = findViewById(R.id.title);
         subtitle = findViewById(R.id.subtitle);
@@ -92,12 +100,6 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(mLayoutManager);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
         recyclerView.setAdapter(mAdapter);
-
-
-//        groupList = findViewById(R.id.list);
-//        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, arrayList);
-//        LinearLayoutManager linearLayoutManager = new LinearLayoutManager(getApplicationContext());
-//        groupList.setAdapter(adapter);
         new scanWifi().execute();
     }
 
@@ -106,29 +108,29 @@ public class MainActivity extends AppCompatActivity {
         JSONObject infos = null;
         try {
             reader = new JSONObject(result);
-
+            curId = reader.getString("booth_id");
             String name = reader.getString("booth_name");
             String subtitle_s = reader.getString("boot_subtitle");
             infos = reader.getJSONObject("booth_info");
-
-//
-//            printConsole("========================");
-//            printConsole("Reply");
-//            printConsole("========================");
-//            printConsole("Boooth name :" + name);
-//            for (int x = 1; x<=infos.length(); x++){
-//                JSONObject item = infos.getJSONObject(x+"");
-//                printConsole("------------"+x+"------------");
-//                printConsole("title: " + item.getString("title"));
-//                printConsole("subtitle: ");
-//                printConsole( item.getString("subtitle"));
-//            }
-//            printConsole("========================");
-
-
+            rating.setText("Rating "+ reader.getString("booth_rate") + "/5.0");
             text.setText(name);
             subtitle.setText(subtitle_s);
             console = subtitle;
+
+            if (reader.getString("has_rated").equals("1")){
+                rate.setEnabled(false);
+                oneRatingBar.setEnabled(true);
+                oneRatingBar.setClickable(false);
+                oneRatingBar.setRating(Float.parseFloat(reader.getString("score")));
+            }
+            else{
+                rate.setEnabled(true);
+                oneRatingBar.setEnabled(true);
+                oneRatingBar.setClickable(true);
+            }
+
+
+
             final Layout layout = console.getLayout();
             if(layout != null){
                 int scrollDelta = layout.getLineBottom(console.getLineCount() - 1)
@@ -155,6 +157,7 @@ public class MainActivity extends AppCompatActivity {
             mAdapter.notifyDataSetChanged();
         }
         send.setEnabled(true);
+
     }
 
     private class SendDeviceDetails extends AsyncTask<String, Void, String> {
@@ -205,6 +208,53 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private class SendRate extends AsyncTask<String, Void, String> {
+
+        @Override
+        protected String doInBackground(String... params) {
+
+            String data = "";
+
+            HttpURLConnection httpURLConnection = null;
+            try {
+
+                httpURLConnection = (HttpURLConnection) new URL(params[0]).openConnection();
+                httpURLConnection.setRequestMethod("POST");
+
+                httpURLConnection.setDoOutput(true);
+
+                DataOutputStream wr = new DataOutputStream(httpURLConnection.getOutputStream());
+                wr.writeBytes("PostData=" + params[1]);
+                wr.flush();
+                wr.close();
+
+                InputStream in = httpURLConnection.getInputStream();
+                InputStreamReader inputStreamReader = new InputStreamReader(in);
+
+                int inputStreamData = inputStreamReader.read();
+                while (inputStreamData != -1) {
+                    char current = (char) inputStreamData;
+                    inputStreamData = inputStreamReader.read();
+                    data += current;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                if (httpURLConnection != null) {
+                    httpURLConnection.disconnect();
+                }
+            }
+
+            return data;
+        }
+
+        @Override
+        protected void onPostExecute(String result) {
+            super.onPostExecute(result);
+            //do Nothing
+        }
+    }
+
     public void printConsole(String s){
         // Function to print to console
         arrayList.clear();
@@ -244,6 +294,8 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void run() {
                     send.setEnabled(false);
+                    rate.setEnabled(false);
+                    oneRatingBar.setEnabled(false);
 //                    printConsole("scanning data;");
 //                    printConsole("--------------------- ");
                     text.setText("scanning data");
@@ -253,6 +305,7 @@ public class MainActivity extends AppCompatActivity {
 
 
             for (int x = 0; x<20;x++){
+                wifiManager.startScan();
                 results = wifiManager.getScanResults();
                 for (ScanResult scanResult : results) {
                     //final String sca = scanResult.BSSID;
@@ -290,20 +343,11 @@ public class MainActivity extends AppCompatActivity {
             level1 /=count1;
             level2 /=count2;
             level3 /= count3;
-
-
-//            printConsole("============");
-//            printConsole(BSSID1 + " : " + level1);
-//            printConsole(BSSID2 + " : " + level2);
-//            printConsole(BSSID3 + " : " + level3);
-//            printConsole("============");
-
-
-
             try {
                 json.put(BSSID1 , level1);
                 json.put(BSSID2 , level2);
                 json.put(BSSID3 , level3);
+                json.put("user_id", user_id);
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -311,4 +355,23 @@ public class MainActivity extends AppCompatActivity {
             new SendDeviceDetails().execute(uri, json.toString());
         }
     }
+
+    private void makeRate(){
+        rate.setEnabled(false);
+        oneRatingBar.setEnabled(true);
+        oneRatingBar.setClickable(false);
+        JSONObject rateJson = new JSONObject();
+        try {
+            rateJson.put("id", curId);
+            rateJson.put("star",oneRatingBar.getNumStars() );
+            rateJson.put("rate",oneRatingBar.getRating() );
+            rateJson.put("user_id", user_id);
+
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        new SendRate().execute(uriRate, rateJson.toString());
+
+    }
 }
+

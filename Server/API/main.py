@@ -25,7 +25,7 @@ MySQL connector
 """
 
 
-def getData(dataID):
+def getData(dataID, userID):
     #fetch data
     #fetch booth
     
@@ -40,7 +40,16 @@ def getData(dataID):
     cursor.execute("SELECT * FROM booth_info where booth_id='"+str(booth[0][0])+"'")
     booth_infos = cursor.fetchall()
     
+    cursor.execute("select rate from user_rate where booth_id = {} and user_id = {}"
+                   .format(booth[0][0], userID))
+    rate= cursor.fetchall()
     cnx.close()
+    
+    has_rated = 0
+    score = 0
+    if (len(rate)!=0):
+        has_rated = 1
+        score = rate[0][0]
     
     infos = {}
     counter = 1
@@ -57,6 +66,9 @@ def getData(dataID):
               "booth_id" : booth[0][3],
               "boot_subtitle" : booth[0][2],
               "booth_name" : booth[0][1],
+              "booth_rate" : booth[0][4],
+              "has_rated" : has_rated,
+              "score" : score,
               "booth_info" : infos
               }
     outputJson = json.dumps(output)
@@ -101,7 +113,9 @@ def index():
 def predictApi():
     PostData = request.form.get('PostData')
     jsons = json.loads(PostData)
+    user = jsons["user_id"]
     out1 = predict(jsons)
+    print(jsons)
     
     if out1==-1:
         output = {"status" : "error", "message" : "predict error"}
@@ -112,10 +126,64 @@ def predictApi():
         
     
     else:
-        output = getData(out1)
+        output = getData(out1, user )
         
     return output
 
+
+@app.route('/rate', methods=['POST'])
+def submitRate():
+    PostData = request.form.get('PostData')
+    jsons = json.loads(PostData)
+    rating = jsons["rate"]
+    id_user = 1
+    id_booth = jsons["id"]
+    cnx = mysql.connector.connect(user='root', password='',
+                                  host='127.0.0.1',
+                                  database='IPS')
+    cursor = cnx.cursor()
+    cursor.execute("insert into user_rate(user_id, booth_id, rate) values ("+
+                   "'{}', '{}', '{}')".format(id_user, id_booth, rating))
+    cnx.commit()
+    
+    cursor.execute("SELECT * FROM booth where booth_id_model='"+str(id_booth)+"'")
+    booth = cursor.fetchall()
+    curRate = booth[0][4]
+    newRate = (float(curRate) * int(booth[0][5]) + float(rating))/ \
+                (int(booth[0][5])+1)
+                
+                
+    cursor.execute("UPDATE booth set rating = {}, rated_by = {} where booth_id = {}"
+                   .format (newRate, booth[0][5]+1, id_booth))
+    cnx.commit()
+    
+    cnx.close()
+    
+    return {"status" : "success"}
+
+@app.route('/auth', methods=['POST'])
+def login():
+    PostData = request.form.get('PostData')
+    jsons = json.loads(PostData)
+    print (jsons)
+    
+    cnx = mysql.connector.connect(user='root', password='',
+                                  host='127.0.0.1',
+                                  database='IPS')
+    cursor = cnx.cursor()
+    cursor.execute("SELECT user_id FROM user where username ='{}' and password = '{}'"
+                   .format(jsons['user'], jsons['pass']))
+    uid = cursor.fetchall()
+    cnx.close()
+    
+    print("id", uid)
+    
+    if (len(uid) == 0):
+        return {"status" : "error", "user_id" : "-1"}
+    
+    
+    return {"status" : "success", "user_id" : str(uid[0][0])}
+    
 
 @app.route('/test', methods=['POST'])
 def test():

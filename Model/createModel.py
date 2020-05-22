@@ -21,7 +21,7 @@ data = loadDataset("tekber.csv")
 
 dictBSSID = {"ce:73:14:c4:7a:28" : 0, 
              "18:0f:76:91:f2:72" : 1, 
-             "c0:25:e9:7a:e6:30":2}
+             "c0:25:e9:7a:e6:2f":2}
 y = []
 x = []
 class_x = [[] for a in range(3)]
@@ -39,7 +39,7 @@ for item in data:
         continue
     x.append(temp)
     y.append(item[0])
-    class_x[int(item[0])].append(temp)
+    class_x[int(item[0])-1].append(temp)
 
 train_x =  []
 train_y =  []
